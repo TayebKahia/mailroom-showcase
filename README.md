@@ -99,7 +99,38 @@ flowchart LR
     API --> DB
 ```
 
+### The pipeline: from one email to one approved send
+
+```mermaid
+flowchart TD
+    R["Email received: stored, text cleaned (hidden text removed, attachments never opened)"] --> C["Classify: Category, priority guess, suspicion flag (model)"]
+    C -->|"spam or marketing"| CL["Closed, no reply"]
+    C --> E["Extract: name, event date, guest count, package; each a value or unknown (model)"]
+    E --> P{"Escalation rules (code)"}
+    P -->|"complaint, refund, legal, cancellation, suspected injection"| ESC["Escalated to a person, with the reason"]
+    P -->|"none"| G["Ground: read-only tool loop over Knowledge Base, calendar, CRM, price list (model, bounded by a Budget)"]
+    G --> D["Draft: one reply plus planned Actions (model)"]
+    D --> K["Check: Pricing Guard, Citations, Actions against the thread (code)"]
+    K -->|"special price or unanswerable question"| ESC
+    K --> S{"Newer email in the thread?"}
+    S -->|"yes"| ST["Stale: a new Run starts"]
+    S -->|"no"| PR["Waiting for approval on the page"]
+    PR -->|"Operator edits, approves or rejects"| AP["Approved: each Action gets an Action Id"]
+    AP --> X["Executor, no model call: calendar hold, then reply, then CRM lead"]
+    X --> AU["Every step above is a hash-chained audit event"]
+```
+
 Each email becomes a Run, a persisted state machine: received, classified, extracted, then either escalated or grounded through a bounded read-only tool loop, drafted, checked by code, and proposed. Approval runs the planned Actions in a fixed order (calendar hold, reply, CRM lead) with no further model call, so a slot taken in the meantime stops before anything is sent. Every transition is a database write and an audit event, so a restart resumes where it stopped.
+
+### After a crash: each Action runs once
+
+```mermaid
+flowchart LR
+    A["Action found executing at startup"] --> L{"Look up its Action Id at Gmail, Calendar or HubSpot"}
+    L -->|"found"| D["Recorded as executed, nothing sent again"]
+    L -->|"not found"| T["Retried once"]
+    L -->|"lookup failed"| F["Handed to a person, never retried blindly"]
+```
 
 The full design, with the alternatives considered and the failure modes, is in [ARCHITECTURE.md](ARCHITECTURE.md). The REST API's contract is [openapi.json](openapi.json).
 
