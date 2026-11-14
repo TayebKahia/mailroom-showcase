@@ -103,21 +103,19 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    R["Email received: stored, text cleaned (hidden text removed, attachments never opened)"] --> C["Classify: Category, priority guess, suspicion flag (model)"]
-    C -->|"spam or marketing"| CL["Closed, no reply"]
-    C --> E["Extract: name, event date, guest count, package; each a value or unknown (model)"]
+    R["Email received, text cleaned"] --> C["Classify (model)"]
+    C -->|"spam"| CL["Closed, no reply"]
+    C --> E["Extract fields (model)"]
     E --> P{"Escalation rules (code)"}
-    P -->|"complaint, refund, legal, cancellation, suspected injection"| ESC["Escalated to a person, with the reason"]
-    P -->|"none"| G["Ground: read-only tool loop over Knowledge Base, calendar, CRM, price list (model, bounded by a Budget)"]
-    G --> D["Draft: one reply plus planned Actions (model)"]
-    D --> K["Check: Pricing Guard, Citations, Actions against the thread (code)"]
-    K -->|"special price or unanswerable question"| ESC
-    K --> S{"Newer email in the thread?"}
-    S -->|"yes"| ST["Stale: a new Run starts"]
-    S -->|"no"| PR["Waiting for approval on the page"]
-    PR -->|"Operator edits, approves or rejects"| AP["Approved: each Action gets an Action Id"]
-    AP --> X["Executor, no model call: calendar hold, then reply, then CRM lead"]
-    X --> AU["Every step above is a hash-chained audit event"]
+    P -->|"complaint, refund, legal, injection"| ESC["Escalated to a person"]
+    P --> G["Look up: documents, calendar, CRM, prices (read-only, model)"]
+    G --> D["Draft reply and planned Actions (model)"]
+    D --> K["Check prices, Citations, Actions (code)"]
+    K -->|"special price, unanswerable"| ESC
+    K --> PR["Waiting for approval"]
+    PR -->|"newer email arrives"| ST["Stale, a new Run starts"]
+    PR -->|"Operator approves"| X["Executor: hold, reply, lead (no model)"]
+    X --> AU["Hash-chained Audit Trail"]
 ```
 
 Each email becomes a Run, a persisted state machine: received, classified, extracted, then either escalated or grounded through a bounded read-only tool loop, drafted, checked by code, and proposed. Approval runs the planned Actions in a fixed order (calendar hold, reply, CRM lead) with no further model call, so a slot taken in the meantime stops before anything is sent. Every transition is a database write and an audit event, so a restart resumes where it stopped.
