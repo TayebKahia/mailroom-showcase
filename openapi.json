@@ -1,0 +1,2300 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mailroom API",
+    "description": "Read Conversations, Proposals and Audit Trails, search the Knowledge Base, and ask for a redraft, with an API Token. Nothing here approves, rejects or sends: that takes a signed-in Operator on the page.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/conversations": {
+      "get": {
+        "summary": "Conversations",
+        "description": "Conversations, urgent first, then oldest first, matching every filter given.",
+        "operationId": "list_conversations",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "new",
+                    "triaged",
+                    "awaiting_approval",
+                    "replied",
+                    "escalated",
+                    "closed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "urgent",
+                    "normal",
+                    "low"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "new_inquiry",
+                    "pricing_request",
+                    "booking_change",
+                    "complaint",
+                    "vendor_or_partner",
+                    "spam_or_marketing",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the page before",
+              "title": "Cursor"
+            },
+            "description": "`next_cursor` of the page before"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ConversationSummary_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/conversations/{conversation_id}": {
+      "get": {
+        "summary": "Conversation",
+        "description": "A Conversation with its Messages, Runs and current Proposal (its Draft, issues,\nCitations, planned Actions, and the decision and Actions once decided).",
+        "operationId": "get_conversation",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/proposals": {
+      "get": {
+        "summary": "Pending Proposals",
+        "description": "Proposals waiting for an Operator's decision, oldest first.",
+        "operationId": "list_pending_approvals",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "const": "pending",
+              "type": "string",
+              "default": "pending",
+              "title": "State"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the page before",
+              "title": "Cursor"
+            },
+            "description": "`next_cursor` of the page before"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_PendingApproval_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/conversations/{conversation_id}/audit": {
+      "get": {
+        "summary": "Audit Trail",
+        "description": "The Conversation's Audit Trail, in order. A body cleared by the purge is null,\nwith `purged` true.",
+        "operationId": "get_audit_trail",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the page before",
+              "title": "Cursor"
+            },
+            "description": "`next_cursor` of the page before"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AuditRecord_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/summary": {
+      "get": {
+        "summary": "Summary",
+        "description": "Counts by status, Priority and Category, and how long the oldest pending\nProposal has waited.",
+        "operationId": "inbox_summary",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/knowledge/search": {
+      "post": {
+        "summary": "Knowledge Search",
+        "description": "Ask the business's Knowledge Base a question: an answer with its claims and\nexcerpts, or not found.",
+        "operationId": "search_knowledge_base",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeSearch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeAnswer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/proposals/{proposal_id}/redraft": {
+      "post": {
+        "summary": "Redraft",
+        "description": "Ask for a pending Proposal to be drafted again with an instruction. It turns\nStale; the new Proposal waits for an Operator's approval on the page. Nothing is\nsent.",
+        "operationId": "request_redraft",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedraftQueued"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionView": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Action Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "send_reply",
+              "create_calendar_hold",
+              "upsert_crm_lead"
+            ],
+            "title": "Kind"
+          },
+          "arguments": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Arguments"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "executing",
+              "executed",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "provider_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Ref"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "kind",
+          "arguments",
+          "state",
+          "provider_ref",
+          "attempts",
+          "error"
+        ],
+        "title": "ActionView",
+        "description": "An Action assigned on approval, with what it will write."
+      },
+      "ApiError": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "ApiError"
+      },
+      "Approval": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Decision"
+          },
+          "operator_email": {
+            "type": "string",
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Operator Email"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          },
+          "edited_draft": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited Draft"
+          },
+          "price_override": {
+            "type": "boolean",
+            "title": "Price Override"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "decision",
+          "operator_email",
+          "demo",
+          "edited_draft",
+          "price_override",
+          "note",
+          "version"
+        ],
+        "title": "Approval",
+        "description": "An Operator's decision on a Proposal, one per Proposal. `version` is the Proposal's\nversion the Operator decided on; `edited_draft` is set only when they changed the Draft,\nand `price_override` only when they confirmed a blocked amount as their own quote."
+      },
+      "AuditRecord": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "run_state",
+              "model_call",
+              "tool_call",
+              "proposal",
+              "approval",
+              "rejection",
+              "action_executing",
+              "action_executed",
+              "action_failed",
+              "token_used",
+              "control_changed",
+              "purge"
+            ],
+            "title": "Kind"
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "operator",
+              "system"
+            ],
+            "title": "Actor"
+          },
+          "operator_email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator Email"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Metadata"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "purged": {
+            "type": "boolean",
+            "title": "Purged",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "run_id",
+          "kind",
+          "actor",
+          "sequence",
+          "recorded_at"
+        ],
+        "title": "AuditRecord",
+        "description": "An AuditEvent as stored: its place in the Audit Trail and when it was recorded."
+      },
+      "CalendarHold": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "End"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "start",
+          "end",
+          "title"
+        ],
+        "title": "CalendarHold",
+        "description": "A provisional calendar event for a Customer's date."
+      },
+      "CheckIssue": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unlisted_amount",
+              "action_fact_mismatch",
+              "uncited_excerpt",
+              "suspected_injection",
+              "hidden_text",
+              "truncated"
+            ],
+            "title": "Code"
+          },
+          "blocking": {
+            "type": "boolean",
+            "title": "Blocking"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "blocking",
+          "detail"
+        ],
+        "title": "CheckIssue",
+        "description": "What the ProposalChecker found. A blocking issue stops the Proposal being approved as\nit is; `span` is where it is in the Draft (start, end), for the page to highlight."
+      },
+      "ConversationDetail": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "customer_address": {
+            "type": "string",
+            "title": "Customer Address"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "triaged",
+              "awaiting_approval",
+              "replied",
+              "escalated",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "new_inquiry",
+                  "pricing_request",
+                  "booking_change",
+                  "complaint",
+                  "vendor_or_partner",
+                  "spam_or_marketing",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "urgent",
+                  "normal",
+                  "low"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "crm_sync_failed": {
+            "type": "boolean",
+            "title": "Crm Sync Failed"
+          },
+          "extracted_fields": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "escalation_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "complaint_refund_legal_cancel",
+                  "kb_not_found",
+                  "invalid_output",
+                  "suspected_injection",
+                  "budget_exhausted",
+                  "customer_asked_for_person",
+                  "pricing_request",
+                  "agent_unavailable",
+                  "rejected_by_operator",
+                  "execution_failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Reason"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageView"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunView"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProposalView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "subject",
+          "customer_address",
+          "status",
+          "category",
+          "priority",
+          "summary",
+          "created_at",
+          "crm_sync_failed",
+          "extracted_fields",
+          "escalation_reason",
+          "messages",
+          "runs",
+          "proposal"
+        ],
+        "title": "ConversationDetail"
+      },
+      "ConversationSummary": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "customer_address": {
+            "type": "string",
+            "title": "Customer Address"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "triaged",
+              "awaiting_approval",
+              "replied",
+              "escalated",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "new_inquiry",
+                  "pricing_request",
+                  "booking_change",
+                  "complaint",
+                  "vendor_or_partner",
+                  "spam_or_marketing",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "urgent",
+                  "normal",
+                  "low"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "crm_sync_failed": {
+            "type": "boolean",
+            "title": "Crm Sync Failed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "subject",
+          "customer_address",
+          "status",
+          "category",
+          "priority",
+          "summary",
+          "created_at",
+          "crm_sync_failed"
+        ],
+        "title": "ConversationSummary"
+      },
+      "DraftAction": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "create_calendar_hold",
+              "upsert_crm_lead"
+            ],
+            "title": "Kind"
+          },
+          "calendar_hold": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarHold"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadArgs"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "calendar_hold",
+          "lead"
+        ],
+        "title": "DraftAction",
+        "description": "An Action the model proposes besides the reply (LLM output): no recipient, no ids.\nIt carries the arguments of its kind and only those."
+      },
+      "ExtractedFields": {
+        "properties": {
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "$ref": "#/components/schemas/Unknown"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "event_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "$ref": "#/components/schemas/Unknown"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "guest_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5000.0,
+                "minimum": 1.0
+              },
+              {
+                "$ref": "#/components/schemas/Unknown"
+              }
+            ],
+            "title": "Guest Count"
+          },
+          "package": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              {
+                "$ref": "#/components/schemas/Unknown"
+              }
+            ],
+            "title": "Package"
+          },
+          "booking_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^BM-\\d{5}$"
+              },
+              {
+                "$ref": "#/components/schemas/Unknown"
+              }
+            ],
+            "title": "Booking Reference"
+          },
+          "mentions_refund": {
+            "type": "boolean",
+            "title": "Mentions Refund"
+          },
+          "mentions_legal_action": {
+            "type": "boolean",
+            "title": "Mentions Legal Action"
+          },
+          "mentions_cancellation": {
+            "type": "boolean",
+            "title": "Mentions Cancellation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "customer_name",
+          "event_date",
+          "guest_count",
+          "package",
+          "booking_reference",
+          "mentions_refund",
+          "mentions_legal_action",
+          "mentions_cancellation"
+        ],
+        "title": "ExtractedFields",
+        "description": "The facts a Conversation states (LLM output). Each is a value or Unknown."
+      },
+      "InboxSummary": {
+        "properties": {
+          "conversations": {
+            "type": "integer",
+            "title": "Conversations"
+          },
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "new",
+                "triaged",
+                "awaiting_approval",
+                "replied",
+                "escalated",
+                "closed"
+              ]
+            },
+            "type": "object",
+            "title": "By Status"
+          },
+          "by_priority": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "urgent",
+                "normal",
+                "low"
+              ]
+            },
+            "type": "object",
+            "title": "By Priority"
+          },
+          "by_category": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "new_inquiry",
+                "pricing_request",
+                "booking_change",
+                "complaint",
+                "vendor_or_partner",
+                "spam_or_marketing",
+                "other"
+              ]
+            },
+            "type": "object",
+            "title": "By Category"
+          },
+          "pending_proposals": {
+            "type": "integer",
+            "title": "Pending Proposals"
+          },
+          "oldest_pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "oldest_pending_age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Pending Age Seconds"
+          },
+          "queued_runs": {
+            "type": "integer",
+            "title": "Queued Runs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversations",
+          "by_status",
+          "by_priority",
+          "by_category",
+          "pending_proposals",
+          "oldest_pending",
+          "oldest_pending_age_seconds",
+          "queued_runs"
+        ],
+        "title": "InboxSummary",
+        "description": "Counts by status, Priority and Category (every value, 0 included; a Conversation\nnot yet triaged has neither Priority nor Category), and the oldest pending Proposal."
+      },
+      "JsonValue": {},
+      "KnowledgeAnswer": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "partially_answered",
+              "not_found"
+            ],
+            "title": "Outcome"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeClaim"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outcome",
+          "claims",
+          "missing"
+        ],
+        "title": "KnowledgeAnswer"
+      },
+      "KnowledgeCitation": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "question",
+          "excerpt"
+        ],
+        "title": "KnowledgeCitation",
+        "description": "A Knowledge Base excerpt as a Read Tool returned it in a Run, with the question whose\nanswer returned it: what a Draft may cite, and what the Operator sees it relied on."
+      },
+      "KnowledgeClaim": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "excerpts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Excerpts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "excerpts"
+        ],
+        "title": "KnowledgeClaim",
+        "description": "One statement from the Knowledge Base with the excerpts it rests on."
+      },
+      "KnowledgeSearch": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "KnowledgeSearch"
+      },
+      "LeadArgs": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "event_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "guest_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guest Count"
+          },
+          "package": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "event_date",
+          "guest_count",
+          "package",
+          "note"
+        ],
+        "title": "LeadArgs",
+        "description": "A CRM lead as the model drafts it: no email, which code sets to the Customer's."
+      },
+      "MessageView": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction"
+          },
+          "from_address": {
+            "type": "string",
+            "title": "From Address"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Sent At"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message_id",
+          "direction",
+          "from_address",
+          "sent_at",
+          "text"
+        ],
+        "title": "MessageView"
+      },
+      "Page_AuditRecord_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "Page[AuditRecord]"
+      },
+      "Page_ConversationSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "Page[ConversationSummary]"
+      },
+      "Page_PendingApproval_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PendingApproval"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "Page[PendingApproval]"
+      },
+      "PendingApproval": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "customer_address": {
+            "type": "string",
+            "title": "Customer Address"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "urgent",
+                  "normal",
+                  "low"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "new_inquiry",
+                  "pricing_request",
+                  "booking_change",
+                  "complaint",
+                  "vendor_or_partner",
+                  "spam_or_marketing",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "proposed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Proposed At"
+          },
+          "blocked": {
+            "type": "boolean",
+            "title": "Blocked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "conversation_id",
+          "version",
+          "subject",
+          "customer_address",
+          "priority",
+          "category",
+          "proposed_at",
+          "blocked"
+        ],
+        "title": "PendingApproval",
+        "description": "A Proposal waiting for an Operator: proposed, not Stale, not decided."
+      },
+      "PendingProposal": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "proposed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Proposed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "subject",
+          "proposed_at"
+        ],
+        "title": "PendingProposal"
+      },
+      "ProposalView": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "recipient": {
+            "type": "string",
+            "title": "Recipient"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "draft_text": {
+            "type": "string",
+            "title": "Draft Text"
+          },
+          "planned": {
+            "items": {
+              "$ref": "#/components/schemas/DraftAction"
+            },
+            "type": "array",
+            "title": "Planned"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeCitation"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/CheckIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "run_state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "received",
+              "classified",
+              "extracted",
+              "grounded",
+              "drafted",
+              "checked",
+              "proposed",
+              "approved",
+              "executing",
+              "executed",
+              "failed",
+              "escalated",
+              "closed",
+              "stale"
+            ],
+            "title": "Run State"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "redrafted": {
+            "type": "boolean",
+            "title": "Redrafted"
+          },
+          "newer_message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Approval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionView"
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "version",
+          "recipient",
+          "subject",
+          "draft_text",
+          "planned",
+          "citations",
+          "issues",
+          "run_state",
+          "stale",
+          "redrafted",
+          "newer_message",
+          "approval",
+          "actions"
+        ],
+        "title": "ProposalView",
+        "description": "The Conversation's latest Proposal: what the agent proposed, what the ProposalChecker\nfound, and the Operator's decision and the Actions it assigned, if decided."
+      },
+      "RedraftQueued": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "stale_proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Stale Proposal Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "run_id",
+          "stale_proposal_id"
+        ],
+        "title": "RedraftQueued",
+        "description": "The redraft is queued: `run_id` drafts again and ends in a new Proposal, which waits\nfor an Operator's approval on the page."
+      },
+      "RedraftRequest": {
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Instruction"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instruction"
+        ],
+        "title": "RedraftRequest"
+      },
+      "RunView": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "received",
+              "classified",
+              "extracted",
+              "grounded",
+              "drafted",
+              "checked",
+              "proposed",
+              "approved",
+              "executing",
+              "executed",
+              "failed",
+              "escalated",
+              "closed",
+              "stale"
+            ],
+            "title": "State"
+          },
+          "escalation_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "complaint_refund_legal_cancel",
+                  "kb_not_found",
+                  "invalid_output",
+                  "suspected_injection",
+                  "budget_exhausted",
+                  "customer_asked_for_person",
+                  "pricing_request",
+                  "agent_unavailable",
+                  "rejected_by_operator",
+                  "execution_failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "state",
+          "escalation_reason"
+        ],
+        "title": "RunView"
+      },
+      "Unknown": {
+        "properties": {
+          "unknown": {
+            "type": "boolean",
+            "const": true,
+            "title": "Unknown",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Unknown",
+        "description": "An Extracted Field the Message does not state: a legal value, never a guess."
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "An API Token: `mrk_` and 43 characters.",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
