@@ -23,10 +23,10 @@ Three and a half minutes on a live Gmail inbox, a real Google Calendar and a rea
 - **Code checks the draft before a person does.** The Pricing Guard blocks any amount that is not on the business's Catalog (or a Catalog price times a quantity the customer stated). Citations must come from this Run's own lookups. A calendar hold must match a date in the thread. The recipient is always the thread's sender, set by code.
 - **Grounded in the business's own documents.** Drafts are written from the Knowledge Base (Grounded Docs over HTTP, or a built-in keyword search), the price list, the calendar and the CRM, through read-only tools inside a bounded tool loop.
 - **Hands the hard ones to a person.** Complaints, refunds, legal threats, cancellations, special-price requests, unanswerable questions and emails that try to instruct an assistant are escalated with the reason, and no draft is offered.
-- **Every approved Action runs once.** An Action Id is written into the Gmail message, the Calendar event and the HubSpot contact. After a crash, the worker looks each unfinished Action up by its Id before deciding to retry, so a reply is never sent twice or lost.
+- **Every approved Action runs once.** An Action Id is written into the Gmail message, the Calendar event and the HubSpot contact. After a crash, the worker looks each unfinished Action up by its Id before deciding to retry, so a reply is not sent twice or silently lost. If that lookup itself fails, the Action is handed to a person.
 - **History nobody can quietly edit.** A hash-chained Audit Trail records every step, including the exact text proposed and sent and the Operator who approved it. The app's database role can only insert and read it, and one command verifies the whole chain.
 - **Asks Claude, keeps the key.** A REST API with scoped tokens, and the public [`mailroom-mcp`](https://github.com/TayebKahia/mailroom-mcp) package, let an MCP client such as Claude Desktop read the queue, summarise a thread or ask for a redraft. No token can approve, reject or send.
-- **Cheap and bounded.** $0.000408 per email (median, held-out set), about $0.41 per 1,000 emails. Each Run stops at a step, cost and time Budget, and a daily spend limit holds the queue.
+- **Cheap and bounded.** $0.000408 per email with `gpt-6-luna` (median, held-out set), about $0.41 per 1,000 emails. Each Run stops at a step, cost and time Budget, and a daily spend limit holds the queue.
 - **Runs in your own stack.** Docker Compose with Postgres, one image and four services; the demo runs with no account or key.
 
 ## Screenshots
@@ -134,7 +134,7 @@ The full design, with the alternatives considered and the failure modes, is in [
 
 ## Evaluation
 
-Measured on a labelled synthetic inbox for a fictional events venue: 150 threads split 100 dev / 50 held-out, and 30 hostile emails written to make the agent send, leak or misprice something. Targets were set before any measurement, and the held-out split was read once, on a frozen commit.
+Measured on a labelled synthetic inbox for a fictional events venue: 150 threads split 100 dev / 50 held-out, and 30 hostile emails written to make the agent send, leak or misprice something. Targets were set before any measurement, and the held-out split was read once, on a frozen commit. The table measures that commit (model `gpt-6-luna`, prompt 2026-11-01.1), not the released 1.0.0 code, which changed after the held-out split was read.
 
 | Metric | Target | Held-out | Met |
 | --- | --- | --- | --- |
@@ -172,7 +172,7 @@ The 1.0.0 build was run end to end on real accounts: two Gmail accounts (busines
 
 | | |
 | --- | --- |
-| Stack | Python 3.12, FastAPI, server-rendered Jinja pages with htmx, Postgres 17, psycopg 3, Pydantic, OpenAI Responses API, Docker Compose |
+| Stack | Python 3.12, FastAPI, server-rendered Jinja pages with htmx, Postgres 17, psycopg 3, Pydantic, OpenAI Responses API (`gpt-6-luna`), Docker Compose |
 | Tests | 1,519 unit and integration tests (Postgres in a throwaway container), plus 11 container smoke tests that build the image, start the stack from a clean clone, deliver an email, approve it and verify the Audit Trail |
 | CI | GitHub Actions: Ruff lint and format, mypy in strict mode, the full test suite, and the Compose smoke job |
 | Ports and adapters | Inbox, Calendar, CRM, Knowledge Base, language model and sign-in are each a port with a real adapter and a fake; the fakes run the demo and the evaluation |
